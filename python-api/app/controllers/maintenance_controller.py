@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.core.auth import require_admin, require_permission
 from app.integrations.glpi_client import GlpiClient
+from app.models import MaintenanceHistory
 
 # Auth temporariamente desabilitada para rotas de escrita (manutenção).
 # Para reativar no futuro, reintroduza `Depends(get_current_user)` nas rotas POST/PUT/DELETE.
@@ -95,6 +96,10 @@ async def update_maintenance_endpoint(
             else:
                 payload = payload.copy(update={"technician": None})
 
+    before = db.query(MaintenanceHistory).filter(MaintenanceHistory.id == maintenance_id).first()
+    if not before:
+        raise HTTPException(status_code=404, detail="Manutenção não encontrada")
+
     updated = update_maintenance(
         db,
         maintenance_id,
@@ -105,6 +110,54 @@ async def update_maintenance_endpoint(
     )
     if not updated:
         raise HTTPException(status_code=404, detail="Manutenção não encontrada")
+
+    # Best-effort: comenta no chamado vinculado.
+    try:
+        ticket_id = updated.glpi_ticket_id or before.glpi_ticket_id
+        if ticket_id:
+            editor = (user.get("display_name") or user.get("sub") or "").strip() or "unknown"
+
+            lines: list[str] = [
+                "Manutenção atualizada no histórico do computador.",
+                f"Editada por: {_sanitize_followup_text(editor)}",
+            ]
+
+            if before.maintenance_type != updated.maintenance_type:
+                lines.append(
+                    f"Tipo: {before.maintenance_type or '-'} -> {updated.maintenance_type or '-'}"
+                )
+            if before.performed_at != updated.performed_at:
+                b = before.performed_at.replace(microsecond=0).isoformat() if before.performed_at else "-"
+                a = updated.performed_at.replace(microsecond=0).isoformat() if updated.performed_at else "-"
+                lines.append(f"Data: {b} -> {a}")
+            if before.technician != updated.technician:
+                lines.append(
+                    f"Técnico: {_sanitize_followup_text(before.technician or '-')} -> {_sanitize_followup_text(updated.technician or '-')}"
+                )
+            if before.next_due != updated.next_due:
+                b = before.next_due.replace(microsecond=0).isoformat() if before.next_due else "-"
+                a = updated.next_due.replace(microsecond=0).isoformat() if updated.next_due else "-"
+                lines.append(f"Próxima (preventiva): {b} -> {a}")
+
+            # Caso o texto tenha mudado, enviamos antes/depois.
+            if (before.description or "") != (updated.description or ""):
+                if (before.description or "").strip():
+                    lines.append("\nObservação (antes):")
+                    lines.append(_sanitize_followup_text(before.description or ""))
+                if (updated.description or "").strip():
+                    lines.append("\nObservação (depois):")
+                    lines.append(_sanitize_followup_text(updated.description or ""))
+
+            outbox = enqueue_followup(
+                db,
+                ticket_id=int(ticket_id),
+                content="\n".join(lines).strip(),
+                maintenance_id=int(updated.id),
+            )
+            await try_send_followup(db, outbox.id)
+    except Exception:
+        pass
+
     return updated
 
 
@@ -123,6 +176,18 @@ async def delete_maintenance_endpoint(
     db: Session = Depends(get_db),
     user=Depends(require_admin),
 ):
+    before = db.query(MaintenanceHistory).filter(MaintenanceHistory.id == maintenance_id).first()
+    if not before:
+        raise HTTPException(status_code=404, detail="Manutenção não encontrada")
+
+    before_ticket_id = before.glpi_ticket_id
+    before_snapshot = {
+        "maintenance_type": before.maintenance_type,
+        "performed_at": before.performed_at.replace(microsecond=0).isoformat() if before.performed_at else None,
+        "technician": before.technician,
+        "description": before.description,
+    }
+
     deleted = delete_maintenance(
         db,
         maintenance_id,
@@ -132,4 +197,34 @@ async def delete_maintenance_endpoint(
     )
     if deleted is None:
         raise HTTPException(status_code=404, detail="Manutenção não encontrada")
+
+    # Best-effort: comenta no chamado vinculado.
+    try:
+        if before_ticket_id:
+            deleter = (user.get("display_name") or user.get("sub") or "").strip() or "unknown"
+
+            lines: list[str] = [
+                "Manutenção excluída do histórico do computador.",
+                f"Excluída por: {_sanitize_followup_text(deleter)}",
+            ]
+
+            if before_snapshot.get("maintenance_type"):
+                lines.append(f"Tipo: {before_snapshot['maintenance_type']}")
+            if before_snapshot.get("performed_at"):
+                lines.append(f"Data: {before_snapshot['performed_at']}")
+            if before_snapshot.get("technician"):
+                lines.append(f"Técnico: {_sanitize_followup_text(before_snapshot['technician'] or '')}")
+            if (before_snapshot.get("description") or "").strip():
+                lines.append("\nObservação removida:")
+                lines.append(_sanitize_followup_text(before_snapshot.get("description") or ""))
+
+            outbox = enqueue_followup(
+                db,
+                ticket_id=int(before_ticket_id),
+                content="\n".join(lines).strip(),
+            )
+            await try_send_followup(db, outbox.id)
+    except Exception:
+        pass
+
     return {"status": "deleted"}
