@@ -1,0 +1,30 @@
+node_modules/
+.next/
+.DS_Store
+*.log
+.env
+.env.local
+.env.production.local
+.env.development.local
+dist/
+build/
+coverage/
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Python virtualenvs
+venv/
+.venv/
+python-api/venv/
+python-api/.venv/
+
+# Python type-check / tooling caches
+.mypy_cache/
+.ruff_cache/

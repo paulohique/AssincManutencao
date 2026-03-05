@@ -1,0 +1,715 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Assinc Manutenções — Guia de Instalação (VM Linux + XAMPP)</title>
+  <meta name="description" content="Documentação completa para instalar e rodar o projeto Assinc Manutenções em uma VM Linux usando XAMPP/phpMyAdmin (MySQL/MariaDB), Backend FastAPI e Frontend Next.js." />
+
+  <!-- Bootstrap 5 (CDN) -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+  <style>
+    :root {
+      --brand: #2b5cff;
+      --brand-2: #00b894;
+      --code-bg: #0b1220;
+      --code-fg: #e5e7eb;
+    }
+
+    body {
+      background: radial-gradient(1200px 500px at 10% 0%, rgba(43,92,255,0.15), transparent),
+                  radial-gradient(900px 500px at 95% 10%, rgba(0,184,148,0.15), transparent),
+                  #0b1020;
+    }
+
+    .app-shell {
+      background: rgba(255,255,255,0.92);
+      border: 1px solid rgba(255,255,255,0.55);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .hero {
+      background: linear-gradient(135deg, rgba(43,92,255,0.12), rgba(0,184,148,0.10));
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+    }
+
+    .badge-soft {
+      background: rgba(43,92,255,0.12);
+      color: #1737b8;
+      border: 1px solid rgba(43,92,255,0.25);
+    }
+
+    .nav-link { color: rgba(0,0,0,0.70); }
+    .nav-link:hover { color: rgba(0,0,0,0.95); }
+    .nav-pills .nav-link.active { background: var(--brand); }
+
+    .toc {
+      position: sticky;
+      top: 1rem;
+      max-height: calc(100vh - 2rem);
+      overflow: auto;
+    }
+
+    pre {
+      background: var(--code-bg);
+      color: var(--code-fg);
+      border-radius: 12px;
+      padding: 1rem;
+      margin: 0;
+      overflow: auto;
+      border: 1px solid rgba(255,255,255,0.10);
+    }
+
+    code { color: inherit; }
+
+    .code-wrap { position: relative; }
+    .btn-copy {
+      position: absolute;
+      top: .6rem;
+      right: .6rem;
+      z-index: 2;
+      backdrop-filter: blur(8px);
+    }
+
+    .callout {
+      border-left: 4px solid var(--brand);
+      background: rgba(43,92,255,0.06);
+      padding: .9rem 1rem;
+      border-radius: 12px;
+    }
+
+    .callout-success {
+      border-left-color: var(--brand-2);
+      background: rgba(0,184,148,0.08);
+    }
+
+    .callout-warn {
+      border-left-color: #f39c12;
+      background: rgba(243,156,18,0.10);
+    }
+
+    .section-title {
+      letter-spacing: -0.02em;
+    }
+
+    .small-muted { color: rgba(0,0,0,0.60); }
+    a { text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="container py-4 py-lg-5">
+    <div class="app-shell">
+      <header class="hero p-4 p-lg-5">
+        <div class="d-flex flex-column flex-lg-row justify-content-between gap-3">
+          <div>
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <span class="badge badge-soft rounded-pill"><i class="bi bi-shield-lock me-1"></i>GLPI = Somente GET</span>
+              <span class="badge text-bg-light rounded-pill"><i class="bi bi-box-seam me-1"></i>VM Linux</span>
+              <span class="badge text-bg-light rounded-pill"><i class="bi bi-database me-1"></i>XAMPP/phpMyAdmin</span>
+            </div>
+            <h1 class="display-6 fw-semibold mb-2">Assinc Manutenções — Guia completo de instalação</h1>
+            <p class="lead mb-0">Passo-a-passo do zero para colocar a aplicação rodando em uma VM Linux (Oracle VM VirtualBox), usando banco MySQL/MariaDB do XAMPP e executando Backend (FastAPI) + Frontend (Next.js).</p>
+            <p class="small-muted mt-3 mb-0"><i class="bi bi-info-circle me-1"></i>Este projeto <strong>não altera o GLPI</strong>. A integração com GLPI é somente leitura (GET) e o CRUD ocorre apenas no banco local.</p>
+          </div>
+          <div class="text-lg-end">
+            <div class="card border-0 shadow-sm">
+              <div class="card-body">
+                <div class="fw-semibold mb-2"><i class="bi bi-lightning-charge me-1"></i>Portas padrão</div>
+                <ul class="list-unstyled mb-0 small">
+                  <li><span class="fw-semibold">API (FastAPI):</span> 8002</li>
+                  <li><span class="fw-semibold">Front (Next.js):</span> 3000</li>
+                  <li><span class="fw-semibold">MySQL (XAMPP):</span> 3306</li>
+                  <li><span class="fw-semibold">phpMyAdmin:</span> http://localhost/phpmyadmin</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main class="p-3 p-lg-4">
+        <div class="row g-4">
+          <aside class="col-12 col-lg-3">
+            <div class="toc">
+              <div class="card shadow-sm">
+                <div class="card-body">
+                  <div class="fw-semibold mb-2"><i class="bi bi-list-check me-1"></i>Conteúdo</div>
+                  <nav class="nav nav-pills flex-column gap-1">
+                    <a class="nav-link" href="#visao-geral">1) Visão geral</a>
+                    <a class="nav-link" href="#vm">2) Criar VM Linux</a>
+                    <a class="nav-link" href="#deps">3) Dependências (Linux)</a>
+                    <a class="nav-link" href="#clone">4) Baixar do GitHub</a>
+                    <a class="nav-link" href="#xampp">5) XAMPP + phpMyAdmin (Banco)</a>
+                    <a class="nav-link" href="#env">6) Configurar .env (fictício)</a>
+                    <a class="nav-link" href="#backend">7) Subir API (FastAPI)</a>
+                    <a class="nav-link" href="#sync">8) Sincronizar GLPI (GET)</a>
+                    <a class="nav-link" href="#frontend">9) Subir Front (Next.js)</a>
+                    <a class="nav-link" href="#relatorio">10) Aba Relatório + PDF</a>
+                    <a class="nav-link" href="#producao">11) Produção (opcional)</a>
+                    <a class="nav-link" href="#troubleshooting">12) Troubleshooting</a>
+                  </nav>
+                  <hr />
+                  <div class="small">
+                    <div class="fw-semibold mb-1">Arquivos de exemplo</div>
+                    <ul class="list-unstyled mb-0">
+                      <li><a href="examples/python-api.env.example">examples/python-api.env.example</a></li>
+                      <li><a href="examples/frontend.env.local.example">examples/frontend.env.local.example</a></li>
+                      <li><a href="examples/init_local_mysql_xampp.sql">examples/init_local_mysql_xampp.sql</a></li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </aside>
+
+          <section class="col-12 col-lg-9">
+            <div class="d-flex flex-column gap-4">
+
+              <section id="visao-geral">
+                <h2 class="section-title h3 fw-semibold">1) Visão geral</h2>
+                <div class="callout">
+                  <div class="fw-semibold mb-1">Arquitetura (resumo)</div>
+                  <div class="small">
+                    <div class="code-wrap mt-2">
+                      <button class="btn btn-sm btn-light btn-copy" data-copy-target="#arch"><i class="bi bi-clipboard"></i> Copiar</button>
+                      <pre id="arch"><code>GLPI (Somente leitura via API REST, GET)
+          |
+          |  Sync (python-api/tools/run_sync.py)
+          v
+MySQL/MariaDB (XAMPP)  &lt;-- CRUD local (notas/manutenções)
+          |
+          v
+FastAPI (porta 8002)  &lt;-- Endpoints /api/*
+          |
+          v
+Next.js (porta 3000)  &lt;-- UI (dashboard, dispositivos, manutenções, relatório + PDF)</code></pre>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row g-3 mt-1">
+                  <div class="col-12 col-md-6">
+                    <div class="card shadow-sm h-100">
+                      <div class="card-body">
+                        <div class="fw-semibold"><i class="bi bi-lock me-1"></i>Regra de ouro</div>
+                        <p class="mb-0 small">A aplicação <strong>não faz</strong> POST/PUT/PATCH/DELETE no GLPI. Somente GET (leitura). Qualquer escrita ocorre no banco local.</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-12 col-md-6">
+                    <div class="card shadow-sm h-100">
+                      <div class="card-body">
+                        <div class="fw-semibold"><i class="bi bi-hdd-network me-1"></i>O que você vai ter no final</div>
+                        <ul class="small mb-0">
+                          <li>Banco no XAMPP criado e acessível via phpMyAdmin</li>
+                          <li>API respondendo em <span class="fw-semibold">http://IP_DA_VM:8002</span></li>
+                          <li>Frontend respondendo em <span class="fw-semibold">http://IP_DA_VM:3000</span></li>
+                          <li>Sync rodando e populando dados do GLPI no banco local</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <section id="vm">
+                <h2 class="section-title h3 fw-semibold">2) Criar a VM Linux (Oracle VM VirtualBox)</h2>
+                <div class="callout callout-warn">
+                  <div class="fw-semibold mb-1">Sugestão de VM</div>
+                  <ul class="small mb-0">
+                    <li><strong>OS:</strong> Ubuntu Server 22.04 LTS (ou Debian 12)</li>
+                    <li><strong>CPU:</strong> 2 vCPU (mínimo)</li>
+                    <li><strong>RAM:</strong> 4 GB (recomendado)</li>
+                    <li><strong>Disco:</strong> 25 GB (ou mais)</li>
+                    <li><strong>Rede:</strong> preferencialmente <strong>Bridged</strong> (para acessar direto via IP da VM)</li>
+                  </ul>
+                </div>
+
+                <div class="card shadow-sm">
+                  <div class="card-body">
+                    <ol class="mb-0">
+                      <li>Crie uma VM nova e instale o Linux normalmente.</li>
+                      <li>Após instalar, atualize o sistema e reinicie.</li>
+                      <li><strong>Se estiver em NAT</strong>: configure Port Forwarding para liberar 3000 e 8002 (host → guest). Exemplo:
+                        <ul>
+                          <li>Host 3000 → Guest 3000 (TCP)</li>
+                          <li>Host 8002 → Guest 8002 (TCP)</li>
+                        </ul>
+                      </li>
+                      <li><strong>Se estiver em Bridged</strong>: use o IP real da VM na rede (mais simples).</li>
+                    </ol>
+                  </div>
+                </div>
+              </section>
+
+              <section id="deps">
+                <h2 class="section-title h3 fw-semibold">3) Instalar dependências no Linux</h2>
+                <div class="card shadow-sm">
+                  <div class="card-body">
+                    <p class="small mb-3">No terminal da VM:</p>
+                    <div class="code-wrap">
+                      <button class="btn btn-sm btn-light btn-copy" data-copy-target="#depscmd"><i class="bi bi-clipboard"></i> Copiar</button>
+                      <pre id="depscmd"><code>sudo apt update
+sudo apt -y upgrade
+
+# Utilitários
+sudo apt -y install git curl ca-certificates build-essential
+
+# Python
+sudo apt -y install python3 python3-venv python3-pip</code></pre>
+                    </div>
+                    <div class="callout callout-success mt-3">
+                      <div class="small"><strong>Dica:</strong> para Node.js no Linux, recomendo usar NVM (abaixo) para instalar Node 20+.</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="card shadow-sm mt-3">
+                  <div class="card-body">
+                    <div class="fw-semibold mb-2">Instalar Node.js via NVM (recomendado)</div>
+                    <div class="code-wrap">
+                      <button class="btn btn-sm btn-light btn-copy" data-copy-target="#nvm"><i class="bi bi-clipboard"></i> Copiar</button>
+                      <pre id="nvm"><code># instala o NVM
+curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+
+# recarrega o shell
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] &amp;&amp; . "$NVM_DIR/nvm.sh"
+
+# instala Node LTS (20)
+nvm install 20
+nvm use 20
+node -v
+npm -v</code></pre>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <section id="clone">
+                <h2 class="section-title h3 fw-semibold">4) Baixar o projeto do GitHub</h2>
+                <div class="card shadow-sm">
+                  <div class="card-body">
+                    <div class="code-wrap">
+                      <button class="btn btn-sm btn-light btn-copy" data-copy-target="#clonecmd"><i class="bi bi-clipboard"></i> Copiar</button>
+                      <pre id="clonecmd"><code># escolha uma pasta de trabalho
+cd ~
+
+# clone o repositório
+git clone https://github.com/paulohique/GLPI-MANUTENCAO.git
+cd GLPI-MANUTENCAO</code></pre>
+                    </div>
+                    <p class="small mt-3 mb-0">Estrutura relevante:</p>
+                    <ul class="small mb-0">
+                      <li><strong>python-api/</strong> → Backend FastAPI + Sync GLPI</li>
+                      <li><strong>frontend/</strong> → Frontend Next.js</li>
+                    </ul>
+                  </div>
+                </div>
+              </section>
+
+              <section id="xampp">
+                <h2 class="section-title h3 fw-semibold">5) Banco de dados com XAMPP + phpMyAdmin</h2>
+                <div class="callout">
+                  <div class="small"><strong>Você pediu XAMPP:</strong> vamos usar o MySQL/MariaDB do XAMPP e administrar pelo phpMyAdmin.</div>
+                </div>
+
+                <div class="accordion mt-3" id="accXampp">
+                  <div class="accordion-item">
+                    <h2 class="accordion-header" id="hX1">
+                      <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#cX1" aria-expanded="true" aria-controls="cX1">
+                        5.1) Instalar XAMPP (Linux)
+                      </button>
+                    </h2>
+                    <div id="cX1" class="accordion-collapse collapse show" aria-labelledby="hX1" data-bs-parent="#accXampp">
+                      <div class="accordion-body">
+                        <ol class="small">
+                          <li>Baixe o instalador no site oficial do XAMPP (Linux x64).</li>
+                          <li>No terminal, vá até a pasta do arquivo baixado e rode:</li>
+                        </ol>
+                        <div class="code-wrap">
+                          <button class="btn btn-sm btn-light btn-copy" data-copy-target="#xamppinstall"><i class="bi bi-clipboard"></i> Copiar</button>
+                          <pre id="xamppinstall"><code>cd ~/Downloads
+chmod +x xampp-linux-x64-*.run
+sudo ./xampp-linux-x64-*.run</code></pre>
+                        </div>
+                        <div class="small mt-3">Depois, iniciar serviços:</div>
+                        <div class="code-wrap">
+                          <button class="btn btn-sm btn-light btn-copy" data-copy-target="#xamppstart"><i class="bi bi-clipboard"></i> Copiar</button>
+                          <pre id="xamppstart"><code>sudo /opt/lampp/lampp start
+
+# status
+sudo /opt/lampp/lampp status</code></pre>
+                        </div>
+                        <div class="callout callout-warn mt-3">
+                          <div class="small"><strong>Porta 3306:</strong> confirme que o MySQL/MariaDB do XAMPP está na 3306, pois o backend aponta para essa porta por padrão.</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="accordion-item">
+                    <h2 class="accordion-header" id="hX2">
+                      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#cX2" aria-expanded="false" aria-controls="cX2">
+                        5.2) Criar banco e usuário no phpMyAdmin
+                      </button>
+                    </h2>
+                    <div id="cX2" class="accordion-collapse collapse" aria-labelledby="hX2" data-bs-parent="#accXampp">
+                      <div class="accordion-body">
+                        <ol class="small">
+                          <li>Acesse: <strong>http://localhost/phpmyadmin</strong> (na VM).</li>
+                          <li>Abra a aba <strong>SQL</strong> e execute o script abaixo (ajuste a senha).</li>
+                        </ol>
+                        <div class="code-wrap">
+                          <button class="btn btn-sm btn-light btn-copy" data-copy-target="#sql"><i class="bi bi-clipboard"></i> Copiar</button>
+                          <pre id="sql"><code>CREATE DATABASE IF NOT EXISTS glpi_manutencao
+  CHARACTER SET utf8mb4
+  COLLATE utf8mb4_unicode_ci;
+
+CREATE USER IF NOT EXISTS 'glpi_user'@'localhost' IDENTIFIED BY 'UmaSenhaForte_Aqui_123';
+ALTER USER 'glpi_user'@'localhost' IDENTIFIED BY 'UmaSenhaForte_Aqui_123';
+
+GRANT ALL PRIVILEGES ON glpi_manutencao.* TO 'glpi_user'@'localhost';
+FLUSH PRIVILEGES;</code></pre>
+                        </div>
+                        <p class="small mt-3 mb-0">O mesmo script está em <a href="examples/init_local_mysql_xampp.sql">examples/init_local_mysql_xampp.sql</a>.</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="accordion-item">
+                    <h2 class="accordion-header" id="hX3">
+                      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#cX3" aria-expanded="false" aria-controls="cX3">
+                        5.3) Estrutura das tabelas
+                      </button>
+                    </h2>
+                    <div id="cX3" class="accordion-collapse collapse" aria-labelledby="hX3" data-bs-parent="#accXampp">
+                      <div class="accordion-body">
+                        <div class="callout callout-success">
+                          <div class="small"><strong>Importante:</strong> você não precisa criar as tabelas manualmente. Ao subir a API, ela executa <code>Base.metadata.create_all</code> e cria as tabelas automaticamente no banco informado.</div>
+                        </div>
+                        <p class="small mt-3 mb-2">Tabelas principais (criadas automaticamente):</p>
+                        <ul class="small mb-0">
+                          <li><strong>computers</strong> (espelho local do GLPI)</li>
+                          <li><strong>computer_components</strong> (componentes sincronizados)</li>
+                          <li><strong>maintenance_history</strong> (manutenções locais: preventiva/corretiva etc.)</li>
+                          <li><strong>computer_notes</strong> (anotações locais)</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <section id="env">
+                <h2 class="section-title h3 fw-semibold">6) Configurar .env (sem expor seus dados)</h2>
+                <div class="callout callout-warn">
+                  <div class="small"><strong>Segurança:</strong> nunca comite seu <code>python-api/.env</code> com tokens do GLPI/LDAP. Use sempre arquivos de exemplo e mantenha segredos fora do Git.</div>
+                </div>
+
+                <div class="card shadow-sm mt-3">
+                  <div class="card-body">
+                    <div class="fw-semibold mb-2">6.1) Backend: python-api/.env</div>
+                    <p class="small mb-2">Crie o arquivo baseado no exemplo do projeto e preencha com seus dados (abaixo vai um exemplo fictício):</p>
+                    <div class="code-wrap">
+                      <button class="btn btn-sm btn-light btn-copy" data-copy-target="#envbackend"><i class="bi bi-clipboard"></i> Copiar</button>
+                      <pre id="envbackend"><code>cd ~/GLPI-MANUTENCAO/python-api
+cp .env.example .env
+
+# edite o .env com um editor de sua preferência
+nano .env</code></pre>
+                    </div>
+                    <p class="small mt-3 mb-0">Exemplo fictício pronto em <a href="examples/python-api.env.example">examples/python-api.env.example</a>.</p>
+                  </div>
+                </div>
+
+                <div class="card shadow-sm mt-3">
+                  <div class="card-body">
+                    <div class="fw-semibold mb-2">6.2) Frontend: frontend/.env.local</div>
+                    <p class="small mb-2">Aponte o frontend para a URL da API:</p>
+                    <div class="code-wrap">
+                      <button class="btn btn-sm btn-light btn-copy" data-copy-target="#envfront"><i class="bi bi-clipboard"></i> Copiar</button>
+                      <pre id="envfront"><code>cd ~/GLPI-MANUTENCAO/frontend
+cp .env.local.example .env.local
+
+# edite o arquivo e garanta:
+# NEXT_PUBLIC_PY_API_URL=http://127.0.0.1:8002
+nano .env.local</code></pre>
+                    </div>
+                    <p class="small mt-3 mb-0">Exemplo fictício em <a href="examples/frontend.env.local.example">examples/frontend.env.local.example</a>.</p>
+                  </div>
+                </div>
+              </section>
+
+              <section id="backend">
+                <h2 class="section-title h3 fw-semibold">7) Subir a API (FastAPI)</h2>
+                <div class="card shadow-sm">
+                  <div class="card-body">
+                    <div class="fw-semibold mb-2">7.1) Criar venv e instalar dependências</div>
+                    <div class="code-wrap">
+                      <button class="btn btn-sm btn-light btn-copy" data-copy-target="#venv"><i class="bi bi-clipboard"></i> Copiar</button>
+                      <pre id="venv"><code>cd ~/GLPI-MANUTENCAO/python-api
+
+python3 -m venv .venv
+source .venv/bin/activate
+
+pip install --upgrade pip
+pip install -r requirements.txt</code></pre>
+                    </div>
+
+                    <div class="fw-semibold mt-4 mb-2">7.2) Rodar o servidor na porta 8002</div>
+                    <div class="code-wrap">
+                      <button class="btn btn-sm btn-light btn-copy" data-copy-target="#uvicorn"><i class="bi bi-clipboard"></i> Copiar</button>
+                      <pre id="uvicorn"><code># ainda dentro de python-api/ e com venv ativo
+python -m uvicorn --app-dir . main:app --host 0.0.0.0 --port 8002 --reload</code></pre>
+                    </div>
+
+                    <div class="fw-semibold mt-4 mb-2">7.3) Health check</div>
+                    <div class="code-wrap">
+                      <button class="btn btn-sm btn-light btn-copy" data-copy-target="#health"><i class="bi bi-clipboard"></i> Copiar</button>
+                      <pre id="health"><code>curl -i http://127.0.0.1:8002/api/health</code></pre>
+                    </div>
+
+                    <div class="callout callout-success mt-3">
+                      <div class="small"><strong>Criação automática de tabelas:</strong> ao iniciar, a API cria as tabelas no banco configurado (desde que o banco exista e o usuário tenha permissão).</div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <section id="sync">
+                <h2 class="section-title h3 fw-semibold">8) Sincronizar dados do GLPI (somente leitura)</h2>
+                <div class="callout">
+                  <div class="small">Após configurar o <code>python-api/.env</code> com <strong>GLPI_BASE_URL</strong>, <strong>GLPI_APP_TOKEN</strong> e <strong>GLPI_USER_TOKEN</strong>, rode o sync para popular o banco local.</div>
+                </div>
+                <div class="card shadow-sm mt-3">
+                  <div class="card-body">
+                    <div class="code-wrap">
+                      <button class="btn btn-sm btn-light btn-copy" data-copy-target="#synccmd"><i class="bi bi-clipboard"></i> Copiar</button>
+                      <pre id="synccmd"><code>cd ~/GLPI-MANUTENCAO/python-api
+source .venv/bin/activate
+
+python tools/run_sync.py
+
+# validar contagens locais
+python tools/db_counts.py</code></pre>
+                    </div>
+                    <div class="callout callout-warn mt-3">
+                      <div class="small"><strong>Obs:</strong> se tokens/URL estiverem errados, o sync falha. Ajuste o .env e tente novamente.</div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <section id="frontend">
+                <h2 class="section-title h3 fw-semibold">9) Subir o Frontend (Next.js)</h2>
+                <div class="card shadow-sm">
+                  <div class="card-body">
+                    <div class="fw-semibold mb-2">9.1) Instalar dependências</div>
+                    <div class="code-wrap">
+                      <button class="btn btn-sm btn-light btn-copy" data-copy-target="#npm1"><i class="bi bi-clipboard"></i> Copiar</button>
+                      <pre id="npm1"><code>cd ~/GLPI-MANUTENCAO/frontend
+npm install</code></pre>
+                    </div>
+
+                    <div class="fw-semibold mt-4 mb-2">9.2) Rodar em modo dev (porta 3000)</div>
+                    <div class="code-wrap">
+                      <button class="btn btn-sm btn-light btn-copy" data-copy-target="#npm2"><i class="bi bi-clipboard"></i> Copiar</button>
+                      <pre id="npm2"><code>npm run dev</code></pre>
+                    </div>
+
+                    <div class="fw-semibold mt-4 mb-2">9.3) Acessar no navegador</div>
+                    <ul class="small mb-0">
+                      <li>Na própria VM: <strong>http://127.0.0.1:3000</strong></li>
+                      <li>De fora (host/rede): <strong>http://IP_DA_VM:3000</strong> (se bridged ou com port-forward)</li>
+                    </ul>
+                  </div>
+                </div>
+              </section>
+
+              <section id="relatorio">
+                <h2 class="section-title h3 fw-semibold">10) Aba “Relatório” + Exportação PDF</h2>
+                <div class="card shadow-sm">
+                  <div class="card-body">
+                    <p class="small mb-2">A aba <strong>Relatório</strong> permite filtrar por:</p>
+                    <ul class="small">
+                      <li>Tipo de manutenção (ex.: Preventiva / Corretiva)</li>
+                      <li>Período (de/até)</li>
+                      <li>Exportar PDF client-side (no navegador)</li>
+                    </ul>
+                    <div class="callout callout-success">
+                      <div class="small">O PDF é gerado no frontend; a API fornece os dados (nome do PC, patrimônio, técnico, tipo, data).</div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <section id="producao">
+                <h2 class="section-title h3 fw-semibold">11) Produção (opcional)</h2>
+                <div class="card shadow-sm">
+                  <div class="card-body">
+                    <p class="small mb-3">Se quiser rodar sem <code>--reload</code> e com build do Next:</p>
+                    <div class="row g-3">
+                      <div class="col-12 col-lg-6">
+                        <div class="fw-semibold mb-2">Backend (FastAPI)</div>
+                        <div class="code-wrap">
+                          <button class="btn btn-sm btn-light btn-copy" data-copy-target="#prodapi"><i class="bi bi-clipboard"></i> Copiar</button>
+                          <pre id="prodapi"><code>cd ~/GLPI-MANUTENCAO/python-api
+source .venv/bin/activate
+
+python -m uvicorn --app-dir . main:app --host 0.0.0.0 --port 8002</code></pre>
+                        </div>
+                      </div>
+                      <div class="col-12 col-lg-6">
+                        <div class="fw-semibold mb-2">Frontend (Next.js)</div>
+                        <div class="code-wrap">
+                          <button class="btn btn-sm btn-light btn-copy" data-copy-target="#prodfront"><i class="bi bi-clipboard"></i> Copiar</button>
+                          <pre id="prodfront"><code>cd ~/GLPI-MANUTENCAO/frontend
+npm run build
+npm run start -- -p 3000</code></pre>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="callout callout-warn mt-3">
+                      <div class="small"><strong>Nota:</strong> para produção real, considere colocar um reverse proxy (Nginx) e rodar processos como serviços (systemd). Posso montar um modelo de service unit se você quiser.</div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <section id="troubleshooting">
+                <h2 class="section-title h3 fw-semibold">12) Troubleshooting (problemas comuns)</h2>
+                <div class="accordion" id="accTrouble">
+                  <div class="accordion-item">
+                    <h2 class="accordion-header" id="t1">
+                      <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#tc1" aria-expanded="true" aria-controls="tc1">
+                        API não abre (ECONNREFUSED)
+                      </button>
+                    </h2>
+                    <div id="tc1" class="accordion-collapse collapse show" aria-labelledby="t1" data-bs-parent="#accTrouble">
+                      <div class="accordion-body small">
+                        <ul>
+                          <li>Confirme que a API está rodando na VM e ouvindo em <code>0.0.0.0:8002</code>.</li>
+                          <li>Teste local: <code>curl -i http://127.0.0.1:8002/api/health</code></li>
+                          <li>Se acessar de fora, confirme IP/porta e regras de firewall/port-forward.</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="accordion-item">
+                    <h2 class="accordion-header" id="t2">
+                      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#tc2" aria-expanded="false" aria-controls="tc2">
+                        Erro de banco (Access denied / Can't connect)
+                      </button>
+                    </h2>
+                    <div id="tc2" class="accordion-collapse collapse" aria-labelledby="t2" data-bs-parent="#accTrouble">
+                      <div class="accordion-body small">
+                        <ul>
+                          <li>Confirme se o MySQL/MariaDB do XAMPP está iniciado.</li>
+                          <li>Valide usuário/senha no <code>python-api/.env</code>.</li>
+                          <li>Verifique permissões do usuário (<code>GRANT</code> no banco <code>glpi_manutencao</code>).</li>
+                          <li>Se a API e o DB estiverem em hosts diferentes, ajuste <code>DB_HOST</code> e o host do usuário (ex.: <code>'glpi_user'@'%'</code>).</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="accordion-item">
+                    <h2 class="accordion-header" id="t3">
+                      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#tc3" aria-expanded="false" aria-controls="tc3">
+                        Frontend não carrega dados / CORS
+                      </button>
+                    </h2>
+                    <div id="tc3" class="accordion-collapse collapse" aria-labelledby="t3" data-bs-parent="#accTrouble">
+                      <div class="accordion-body small">
+                        <ul>
+                          <li>Confirme <code>frontend/.env.local</code> com <code>NEXT_PUBLIC_PY_API_URL</code> apontando para a API.</li>
+                          <li>No backend, ajuste <code>CORS_ORIGINS</code> no <code>python-api/.env</code> para incluir a URL do frontend.</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="accordion-item">
+                    <h2 class="accordion-header" id="t4">
+                      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#tc4" aria-expanded="false" aria-controls="tc4">
+                        Sync do GLPI falha
+                      </button>
+                    </h2>
+                    <div id="tc4" class="accordion-collapse collapse" aria-labelledby="t4" data-bs-parent="#accTrouble">
+                      <div class="accordion-body small">
+                        <ul>
+                          <li>Revise <code>GLPI_BASE_URL</code>, <code>GLPI_APP_TOKEN</code> e <code>GLPI_USER_TOKEN</code> no <code>python-api/.env</code>.</li>
+                          <li>Teste conectividade da VM até o GLPI (DNS/rota/firewall).</li>
+                          <li>Lembrete: a aplicação é somente leitura (GET) no GLPI.</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <footer class="pt-2">
+                <hr />
+                <div class="d-flex flex-column flex-md-row justify-content-between gap-2 small">
+                  <div><i class="bi bi-file-earmark-text me-1"></i>Guia gerado em Bootstrap 5 (CDN).</div>
+                  <div class="text-md-end">Última atualização: 2026-02-05</div>
+                </div>
+              </footer>
+
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <div class="text-center small text-white-50 mt-3">
+      Dica: você pode abrir este arquivo direto no navegador. Para o visual completo (Bootstrap via CDN), mantenha acesso à internet.
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+  <script>
+    (function () {
+      function toast(message) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'toast-container position-fixed top-0 end-0 p-3';
+        wrapper.innerHTML = `
+          <div class="toast align-items-center text-bg-dark border-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+              <div class="toast-body">${message}</div>
+              <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+          </div>`;
+        document.body.appendChild(wrapper);
+        const el = wrapper.querySelector('.toast');
+        const t = new bootstrap.Toast(el, { delay: 1800 });
+        t.show();
+        el.addEventListener('hidden.bs.toast', () => wrapper.remove());
+      }
+
+      document.querySelectorAll('[data-copy-target]').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const sel = btn.getAttribute('data-copy-target');
+          const el = document.querySelector(sel);
+          if (!el) return;
+          const text = el.innerText;
+          try {
+            await navigator.clipboard.writeText(text);
+            toast('Copiado para a área de transferência');
+          } catch (e) {
+            toast('Falha ao copiar (permissão do navegador)');
+          }
+        });
+      });
+    })();
+  </script>
+</body>
+</html>
